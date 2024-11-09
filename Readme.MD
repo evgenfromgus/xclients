@@ -64,7 +64,7 @@ http://<IP сервера>:3000/. (порт подключения можно и
 ***Для локального запуска (используем Dockerfile):***
 
 - Запускаем БД в контейнере (т.к.п приложение будет работать уже с этой базой) командой:  
-docker run --name postgres -p 5433:5432 -e POSTGRES_USER=qa -e POSTGRES_PASSWORD=skyqa -e POSTGRES_DB=x_clients -d postgres:latest
+docker run --name postgres -p 5433:5432 -e POSTGRES_USER=<логин для БД> -e POSTGRES_PASSWORD=<пароль для БД> -e POSTGRES_DB=<название БД> -d postgres:latest
 - В файле ".env" устанавливаем:   
 DB_HOST=localhost  # Убедитесь, что это имя сервиса в docker-compose или localhost при локальном запуске  
 DB_PORT=5433  # Внешний порт  
