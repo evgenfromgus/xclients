@@ -1,0 +1,120 @@
+services:
+  db: # Сервис базы данных PostgreSQL
+    container_name: my_db  # Имя контейнера для базы данных
+    image: postgres:16  # Образ PostgreSQL
+    environment:
+      - POSTGRES_DB=${DB_NAME}  # Название базы данных
+      - POSTGRES_USER=${DB_USER}  # Имя пользователя для доступа к базе данных
+      - POSTGRES_PASSWORD=${DB_PASSWORD}  # Пароль пользователя
+      - TZ=Europe/Moscow  # Установка временной зоны на Москву
+    ports:
+      - ${DB_PORT}:5432  # Проброс порта (внешний порт:порт внутри контейнера)
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Volume для хранения данных PostgreSQL
+    restart: always  # Перезапуск контейнера при сбое
+    networks:
+      - my_network  # Подключение к пользовательской сети
+
+  redis:  # Сервис Redis
+    container_name: my_redis  # Имя контейнера для Redis
+    image: redis:latest  # Образ Redis
+    ports:
+      - ${REDIS_PORT}:6379  # Проброс стандартного порта Redis
+    volumes:
+      - redis_data:/data  # Volume для хранения данных Redis
+    restart: always  # Перезапуск контейнера при сбое
+    networks:
+      - my_network  # Подключение к пользовательской сети
+
+  app: # Основное приложение
+    container_name: my_app  # Имя контейнера для приложения
+    build:
+      context: ./
+      dockerfile: Dockerfile # Путь к Dockerfile для сборки образа
+    depends_on:
+      - db  # Зависимость от сервиса базы данных
+    command: >
+      bash -c 'until pg_isready -h db -p 5432; do sleep 1; done;
+      alembic upgrade head;
+      uvicorn app.main:app --host 0.0.0.0 --port 8000'
+    volumes:
+      - ./app:/fastapi_app/app  # Монтирование локальной директории в контейнер
+      - ./alembic:/fastapi_app/alembic
+      - ./alembic.ini:/fastapi_app/alembic.ini
+    ports:
+      - ${APP_HOST_PORT}:8000  # Проброс порта приложения
+    restart: always  # Перезапуск контейнера при сбое
+    env_file:
+      - .env  # Файл с переменными окружения
+    networks:
+      - my_network  # Подключение к пользовательской сети
+
+  prometheus: # Сервис Prometheus
+    image: prom/prometheus:latest
+    container_name: my_prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    ports:
+      - "9090:9090"
+    restart: always
+    networks:
+      - my_network
+
+  node_exporter: # Сервис Node Exporter для мониторинга сервера
+    image: prom/node-exporter:latest
+    container_name: my_node_exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($|/)'
+    restart: unless-stopped
+    networks:
+      - my_network
+
+  postgres_exporter: # Сервис Postgres Exporter для мониторинга PostgreSQL
+    image: wrouesnel/postgres_exporter:latest
+    container_name: my_postgres_exporter
+    environment:
+      - DATA_SOURCE_NAME=${DB_EXPORTER_URI}
+    depends_on:
+      - db
+    ports:
+      - "9187:9187"
+    restart: always
+    networks:
+      - my_network
+
+  grafana: # Сервис Grafana
+    container_name: my_grafana
+    image: grafana/grafana:latest
+    ports:
+      - ${GRAFANA_PORT}:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+    depends_on:
+      - prometheus
+    restart: always
+    networks:
+      - my_network
+
+volumes: # Определение volumes для использования
+  postgres_data:  # Volume для PostgreSQL
+  redis_data:  # Volume для Redis
+  grafana_data:  # Volume для Grafana
+
+
+networks:  # Определение пользовательских сетей
+  my_network:  # Имя сети
+    driver: bridge  # Тип сети (мост)
+
