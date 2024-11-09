@@ -17,6 +17,21 @@ Node_exporter (передает информацию о сервере в Promet
 - Убедиться, что порты указанные в настройках приложения, не используются сторонними сервисами. 
 - Перейти в папку, куда планируете переместить проект.
 - Скопировать данную папку проекта в папку на сервере.
+- Создать файл ".env" в корне проекта с содержанием (значения необходимо заполнить):  
+SECRET_KEY=  
+APP_HOST_PORT=  
+DB_HOST=  
+DB_PORT=  
+DB_NAME=  
+DB_USER=  
+DB_PASSWORD=  
+DB_URI=postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}  
+DB_EXPORTER_URI=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable 
+GRAFANA_PORT=  
+GRAFANA_USER=  
+GRAFANA_PASSWORD=  
+REDIS_HOST=  
+REDIS_PORT=
 - В терминале сервера перейти в папку проекта.
 - Запустить в терминале команду: docker compose up -d (докер создаст все необходимые контейнеры).
 - Если в процессе выполнения прошлой команды, что-то пошло не так, необходимо посмотреть логи контейнеров, 
