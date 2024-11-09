@@ -83,9 +83,9 @@ docker run --name postgres -p 5433:5432 -e POSTGRES_USER=<логин для БД
 - В файле ".env" устанавливаем:   
 DB_HOST=localhost  # Убедитесь, что это имя сервиса в docker-compose или localhost при локальном запуске  
 DB_PORT=5433  # Внешний порт  
-DB_NAME=x_clients  # Название вашей базы данных  
-DB_USER=qa  # Имя пользователя базы данных  
-DB_PASSWORD=skyqa   
+DB_NAME=......  # Название вашей базы данных  
+DB_USER=......  # Имя пользователя базы данных  
+DB_PASSWORD=......  # Пароль вашей базы данных 
 REDIS_HOST=localhost  
 REDIS_PORT=6379  
 - В файле "main.py" раскомментируем все строки (т.к. будем работать без миграций и обычными командами создадим таблицы) 
