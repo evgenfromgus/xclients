@@ -10,7 +10,7 @@ import logging
 
 from app.auth.crud import is_user_admin
 from app.auth.jwt import decode_access_token
-from app.company.schemas import Base, CompanyTable, Company, UpdateCompanyDto
+from app.company.schemas import Base, CompanyTable, CompanyCreateRequest, UpdateCompanyDto
 from app.database import engine
 from app.employee.schemas import EmployeeTable
 
@@ -50,7 +50,7 @@ async def create_test_companies(db: AsyncSession):
     await db.commit()
 
 
-async def create_company(db: AsyncSession, company_data: Company):
+async def create_company(db: AsyncSession, company_data: CompanyCreateRequest):
     # Создаем объект компании
     db_company = CompanyTable(**company_data.dict())
 

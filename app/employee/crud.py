@@ -12,7 +12,7 @@ from app.auth.jwt import decode_access_token
 from app.company.schemas import CompanyTable
 from app.database import engine
 from app.employee import schemas
-from app.employee.schemas import Base, EmployeeTable, Employee
+from app.employee.schemas import Base, EmployeeTable, EmployeeCreate
 
 import logging
 
@@ -25,25 +25,34 @@ async def create_employee_table():
 
 
 def create_employee_table_sync(conn):
-    Base.metadata.tables['employee'].create(conn, checkfirst=True)
+    Base.metadata.tables["employee"].create(conn, checkfirst=True)
 
 
 async def get_employee(db: AsyncSession, employee_id: int):
-    result = await db.execute(select(EmployeeTable).where(EmployeeTable.id == employee_id))
+    result = await db.execute(
+        select(EmployeeTable).where(EmployeeTable.id == employee_id)
+    )
     if result is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Не верно введен ID сотрудника. "
-                                                                          "Сотрудник не найден")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Не верно введен ID сотрудника. " "Сотрудник не найден",
+        )
     return result.scalar_one_or_none()  # Возвращает одну запись или None
 
 
-async def create_employee(db: AsyncSession, employee: schemas.Employee):
+async def create_employee(db: AsyncSession, employee: schemas.EmployeeCreate):
     try:
         # Пытаемся найти компанию по ID
-        company = await db.execute(select(CompanyTable).where(CompanyTable.id == employee.company_id))
+        company = await db.execute(
+            select(CompanyTable).where(CompanyTable.id == employee.company_id)
+        )
         company_exists = company.scalar_one_or_none()
 
         if not company_exists:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Компания с данным ID не найдена")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Компания с данным ID не найдена",
+            )
 
         db_employee = EmployeeTable(**employee.dict())
 
@@ -59,27 +68,71 @@ async def create_employee(db: AsyncSession, employee: schemas.Employee):
         return db_employee
     except IntegrityError as e:
         await db.rollback()  # Откатываем изменения в случае ошибки
-        raise HTTPException(status_code=400, detail="Ошибка при создании сотрудника") from e
+        raise HTTPException(
+            status_code=400, detail="Ошибка при создании сотрудника"
+        ) from e
 
 
 async def create_test_employees(db: AsyncSession):
     # Пример данных тестовых сотрудников для каждой компании
     employees_data = [
-        {"first_name": "Иван", "last_name": "Иванов", "middle_name": "Иванович", "phone": "+79001234567",
-         "email": "ivan@example.com", "birthdate": date(1990, 1, 1), "company_id": 1},
-        {"first_name": "Сергей", "last_name": "Петров", "middle_name": "Сергеевич", "phone": "+79007654321",
-         "email": "sergei@example.com", "birthdate": date(1985, 5, 15), "company_id": 1},
-        {"first_name": "Анна", "last_name": "Сидорова", "middle_name": "Анатольевна", "phone": "+79009876543",
-         "email": "anna@example.com", "birthdate": date(1992, 3, 20), "company_id": 2},
-        {"first_name": "Дмитрий", "last_name": "Николаев", "middle_name": "Дмитриевич", "phone": "+79005432123",
-         "email": "dmitry@example.com", "birthdate": date(1988, 7, 30), "company_id": 2},
-        {"first_name": "Елена", "last_name": "Кузнецова", "middle_name": "Викторовна", "phone": "+79006789012",
-         "email": "elena@example.com", "birthdate": date(1995, 11, 10), "company_id": 3},
-        {"first_name": "Максим", "last_name": "Федоров", "middle_name": "Максимович", "phone": "+79001234568",
-         "email": "maksim@example.com", "birthdate": date(1986, 9, 25), "company_id": 3},
+        {
+            "first_name": "Иван",
+            "last_name": "Иванов",
+            "middle_name": "Иванович",
+            "phone": "+79001234567",
+            "email": "ivan@example.com",
+            "birthdate": date(1990, 1, 1),
+            "company_id": 1,
+        },
+        {
+            "first_name": "Сергей",
+            "last_name": "Петров",
+            "middle_name": "Сергеевич",
+            "phone": "+79007654321",
+            "email": "sergei@example.com",
+            "birthdate": date(1985, 5, 15),
+            "company_id": 1,
+        },
+        {
+            "first_name": "Анна",
+            "last_name": "Сидорова",
+            "middle_name": "Анатольевна",
+            "phone": "+79009876543",
+            "email": "anna@example.com",
+            "birthdate": date(1992, 3, 20),
+            "company_id": 2,
+        },
+        {
+            "first_name": "Дмитрий",
+            "last_name": "Николаев",
+            "middle_name": "Дмитриевич",
+            "phone": "+79005432123",
+            "email": "dmitry@example.com",
+            "birthdate": date(1988, 7, 30),
+            "company_id": 2,
+        },
+        {
+            "first_name": "Елена",
+            "last_name": "Кузнецова",
+            "middle_name": "Викторовна",
+            "phone": "+79006789012",
+            "email": "elena@example.com",
+            "birthdate": date(1995, 11, 10),
+            "company_id": 3,
+        },
+        {
+            "first_name": "Максим",
+            "last_name": "Федоров",
+            "middle_name": "Максимович",
+            "phone": "+79001234568",
+            "email": "maksim@example.com",
+            "birthdate": date(1986, 9, 25),
+            "company_id": 3,
+        },
     ]
     for employee in employees_data:
-        employee_schema = Employee(**employee)
+        employee_schema = EmployeeCreate(**employee)
         await create_employee(db, employee_schema)
 
 
@@ -122,10 +175,13 @@ async def create_test_employees(db: AsyncSession):
 #         await db.rollback()  # Откатываем изменения в случае ошибки
 #         raise HTTPException(status_code=400, detail="Ошибка при обновлении сотрудника") from e
 
-async def update_employee(db: AsyncSession,
-                          employee_id: int,
-                          update_data: schemas.UpdateEmployeeDto,
-                          client_token: str):
+
+async def update_employee(
+    db: AsyncSession,
+    employee_id: int,
+    update_data: schemas.UpdateEmployeeDto,
+    client_token: str,
+):
     try:
         # Декодирование токена и проверка роли
         await is_user_admin(client_token)
@@ -152,22 +208,39 @@ async def update_employee(db: AsyncSession,
         return db_employee
     except IntegrityError as e:
         await db.rollback()  # Откатываем изменения в случае ошибки
-        raise HTTPException(status_code=400, detail="Ошибка при обновлении сотрудника") from e
+        raise HTTPException(
+            status_code=400, detail="Ошибка при обновлении сотрудника"
+        ) from e
 
 
 async def get_employees(db: AsyncSession, company_id: int):
     # Пытаемся найти компанию по ID
-    company = await db.execute(select(CompanyTable).where(CompanyTable.id == company_id))
+    company = await db.execute(
+        select(CompanyTable).where(CompanyTable.id == company_id)
+    )
     company_exists = company.scalar_one_or_none()
     if not company_exists:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Компания с данным ID не найдена")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Компания с данным ID не найдена",
+        )
 
-    result = await db.execute(select(EmployeeTable).where(EmployeeTable.company_id == company_id))
-    employees = result.scalars().all()  # Получаем все записи сотрудников для данной компании
+    result = await db.execute(
+        select(EmployeeTable).where(EmployeeTable.company_id == company_id)
+    )
+    employees = (
+        result.scalars().all()
+    )  # Получаем все записи сотрудников для данной компании
     if not employees:  # Проверяем, есть ли сотрудники
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Сотрудники не найдены для данной компании.")
-    logger.info(f"Retrieved {len(employees)} employees for company ID {company_id}")  # Отладочная информация
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Сотрудники не найдены для данной компании.",
+        )
+    logger.info(
+        f"Retrieved {len(employees)} employees for company ID {company_id}"
+    )  # Отладочная информация
     return employees
+
 
 #
 # def delete_all(db: Session):
